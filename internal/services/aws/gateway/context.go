@@ -138,7 +138,7 @@ func BuildContext(req *http.Request, rawBody []byte, options Options) (AwsReques
 		return ctx, nil
 	}
 
-	if shouldTreatAsS3(req, host.Service, pathService) {
+	if shouldTreatAsS3(req, host.Service, pathService, credentials.Scope.Service) {
 		s3Route, err := protocols.ParseS3RESTRequest(req)
 		if err != nil {
 			return AwsRequestContext{}, err
@@ -218,14 +218,54 @@ func s3Input(route protocols.S3Route) map[string]any {
 	}
 }
 
-func shouldTreatAsS3(req *http.Request, hostService string, pathService string) bool {
-	if hostService == "s3" || pathService == "s3" {
+func shouldTreatAsS3(req *http.Request, hostService string, pathService string, credentialService string) bool {
+	if hostService == "s3" || pathService == "s3" || credentialService == "s3" {
 		return true
 	}
 	if req.URL.Query().Get("Action") != "" || req.Header.Get("X-Amz-Target") != "" {
 		return false
 	}
+	if credentialService != "" {
+		return false
+	}
+	if pathService != "" && isServiceRootPath(req.URL.Path) && !hasS3RequestHint(req) {
+		return false
+	}
 	return hostService == ""
+}
+
+func isServiceRootPath(pathValue string) bool {
+	trimmed := strings.Trim(pathValue, "/")
+	if trimmed == "" {
+		return false
+	}
+	_, rest, _ := strings.Cut(trimmed, "/")
+	return rest == ""
+}
+
+func hasS3RequestHint(req *http.Request) bool {
+	query := req.URL.Query()
+	if query.Get("list-type") == "2" {
+		return true
+	}
+	for _, key := range []string{
+		"acl",
+		"delete",
+		"lifecycle",
+		"location",
+		"notification",
+		"policy",
+		"tagging",
+		"uploadId",
+		"uploads",
+		"versioning",
+		"website",
+	} {
+		if _, ok := query[key]; ok {
+			return true
+		}
+	}
+	return false
 }
 
 func detectHost(host string) hostDetection {
