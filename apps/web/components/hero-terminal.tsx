@@ -6,6 +6,7 @@ const services = [
   { name: "Vercel", port: 4000, slug: "vercel" },
   { name: "GitHub", port: 4000, slug: "github" },
   { name: "Google", port: 4000, slug: "google" },
+  { name: "Discord", port: 4000, slug: "discord" },
   { name: "Slack", port: 4000, slug: "slack" },
   { name: "Apple", port: 4000, slug: "apple" },
   { name: "Microsoft", port: 4000, slug: "microsoft" },

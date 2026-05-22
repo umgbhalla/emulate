@@ -23,6 +23,7 @@ const sections: NavSection[] = [
       { href: "/docs/vercel", label: "Vercel" },
       { href: "/docs/github", label: "GitHub" },
       { href: "/docs/google", label: "Google" },
+      { href: "/docs/discord", label: "Discord" },
       { href: "/docs/slack", label: "Slack" },
       { href: "/docs/apple", label: "Apple" },
       { href: "/docs/microsoft", label: "Microsoft Entra ID" },

@@ -73,6 +73,7 @@ Each service registers as a portless alias and gets a named HTTPS URL:
 ```
 github  https://github.emulate.localhost
 google  https://google.emulate.localhost
+discord https://discord.emulate.localhost
 slack   https://slack.emulate.localhost
 ```
 
@@ -142,7 +143,7 @@ afterAll(() => Promise.all([github.close(), vercel.close()]))
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `service` | *(required)* | Service name: `'vercel'`, `'github'`, `'google'`, `'slack'`, `'apple'`, `'microsoft'`, `'okta'`, `'aws'`, `'resend'`, `'stripe'`, `'mongoatlas'`, or `'clerk'` |
+| `service` | *(required)* | Service name: `'vercel'`, `'github'`, `'google'`, `'discord'`, `'slack'`, `'apple'`, `'microsoft'`, `'okta'`, `'aws'`, `'resend'`, `'stripe'`, `'mongoatlas'`, or `'clerk'` |
 | `port` | `4000` | Port for the HTTP server |
 | `seed` | none | Inline seed data (same shape as YAML config) |
 | `baseUrl` | none | Override advertised base URL. Per-service `baseUrl` in seed config takes highest priority, then this option, then `EMULATE_BASE_URL` env var (supports `{service}`), then `PORTLESS_URL` (supports `{service}`, automatically set by the `portless` CLI wrapper), then `http://localhost:<port>`. |
@@ -238,6 +239,22 @@ google:
       name: Docs
       mime_type: application/vnd.google-apps.folder
       parent_ids: [root]
+
+discord:
+  guild:
+    name: My Discord Server
+  bot:
+    username: my-bot
+    token: test-token
+  users:
+    - username: developer
+      global_name: Developer
+      email: dev@example.com
+  channels:
+    - name: general
+      topic: General discussion
+    - name: ops
+      topic: Ops alerts
 
 slack:
   team:
@@ -622,6 +639,32 @@ When more than one of Apple, Google, Microsoft, Okta, and Clerk is enabled on on
 - `GET /calendar/v3/users/:userId/calendarList`, `GET /calendar/v3/calendars/:calendarId/events`, `POST /calendar/v3/calendars/:calendarId/events`, `DELETE /calendar/v3/calendars/:calendarId/events/:eventId`, `POST /calendar/v3/freeBusy`
 - `GET /drive/v3/files`, `GET /drive/v3/files/:fileId`, `POST /drive/v3/files`, `PATCH /drive/v3/files/:fileId`, `PUT /drive/v3/files/:fileId`, `POST /upload/drive/v3/files`
 
+## Discord API
+
+Stateful Discord REST API emulation with bot auth, guilds, channels, members, messages, seed config, and a message inspector.
+
+The native Go runtime implements the Discord REST surface for local CLI runs and Vercel Go Function previews. In native CLI runs with multiple services enabled, open `/discord` for the message inspector. When only Discord is enabled, and in Vercel Go Function previews, the inspector is available at the service root. To expose Discord on a Vercel preview without separate infrastructure, run `npx emulate vercel init --service discord`. The generated route serves Discord at `/emulate/discord/*`.
+
+### Bot Auth
+- `Authorization: Bot test-token` - default bot token
+- `GET /api/v10/users/@me` - current bot user
+- `GET /api/v10/oauth2/applications/@me` - current application
+
+### Guilds & Channels
+- `GET /api/v10/users/@me/guilds` - list guilds
+- `GET /api/v10/guilds/:guildId` - get guild
+- `GET /api/v10/guilds/:guildId/channels` - list channels
+- `GET /api/v10/guilds/:guildId/members` - list members
+- `GET /api/v10/channels/:channelId` - get channel
+
+### Messages
+- `GET /api/v10/channels/:channelId/messages` - list messages
+- `POST /api/v10/channels/:channelId/messages` - create message
+- `PATCH /api/v10/channels/:channelId/messages/:messageId` - edit message
+- `DELETE /api/v10/channels/:channelId/messages/:messageId` - delete message
+
+`/api/v9/*` and `/api/*` aliases are mounted for common client configurations. Gateway and slash-command interaction callbacks are not implemented yet.
+
 ## Slack API
 
 Fully stateful Slack Web API emulation with channels, messages, threads, reactions, OAuth v2, and incoming webhooks.
@@ -886,7 +929,7 @@ This creates:
 - `vercel.json`, with `/emulate/:path*` rewritten to `/api/emulate?path=:path*`
 - `go.mod`, pinned to the installed `emulate` package version
 
-The scaffold currently enables the native `apple`, `aws`, `clerk`, `github`, `google`, `microsoft`, `mongoatlas`, `okta`, `resend`, `slack`, `stripe`, and `vercel` handlers. Use `npx emulate vercel init --service github` to limit the function to one service.
+The scaffold currently enables the native `apple`, `aws`, `clerk`, `discord`, `github`, `google`, `microsoft`, `mongoatlas`, `okta`, `resend`, `slack`, `stripe`, and `vercel` handlers. Use `npx emulate vercel init --service github` to limit the function to one service.
 
 State uses warm memory by default: cold starts reset to a fresh store, warm invocations reuse mutations, and concurrent function instances can diverge. For snapshots across cold starts, implement `vercel.Persistence` in `api/emulate.go` and pass it to `emulate.NewHandler`.
 
@@ -971,6 +1014,7 @@ packages/
     vercel/         # Vercel API metadata and compatibility package
     github/         # GitHub API metadata and compatibility package
     google/         # Google metadata and compatibility package
+    discord/        # Discord metadata and compatibility package
     slack/          # Slack metadata and compatibility package
     apple/          # Apple metadata and compatibility package
     microsoft/      # Microsoft metadata and compatibility package
@@ -990,6 +1034,8 @@ Tokens are configured in the seed config and map to users. Pass them as `Authori
 **GitHub**: Public repo endpoints work without auth. Private repos and write operations require a valid token. Pagination uses `page`/`per_page` with `Link` headers.
 
 **Google**: Standard OAuth 2.0 authorization code flow. Configure clients in the seed config.
+
+**Discord**: Bot REST endpoints require `Authorization: Bot <token>`. The default seeded token is `test-token`.
 
 **Slack**: All Web API endpoints require `Authorization: Bearer <token>`. OAuth v2 flow with user picker UI.
 

@@ -1,6 +1,6 @@
 ---
 name: emulate
-description: Local drop-in API emulator for Vercel, GitHub, Google, Slack, Apple, Microsoft, Okta, Clerk, AWS, MongoDB Atlas, Resend, and Stripe. Use when the user needs to start emulated services, configure seed data, write tests against local APIs, set up CI without network access, scaffold Vercel Go Function previews, or work with the emulate CLI or programmatic API. Triggers include "start the emulator", "emulate services", "mock API locally", "create emulator config", "test against local API", "npx emulate", "npx emulate vercel init", or any task requiring local service emulation.
+description: Local drop-in API emulator for Vercel, GitHub, Google, Discord, Slack, Apple, Microsoft, Okta, Clerk, AWS, MongoDB Atlas, Resend, and Stripe. Use when the user needs to start emulated services, configure seed data, write tests against local APIs, set up CI without network access, scaffold Vercel Go Function previews, or work with the emulate CLI or programmatic API. Triggers include "start the emulator", "emulate services", "mock API locally", "create emulator config", "test against local API", "npx emulate", "npx emulate vercel init", or any task requiring local service emulation.
 allowed-tools: Bash(npx emulate:*)
 ---
 
@@ -87,7 +87,7 @@ await vercel.close()
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `service` | *(required)* | `'vercel'`, `'github'`, `'google'`, `'slack'`, `'apple'`, `'microsoft'`, `'okta'`, `'aws'`, `'resend'`, `'stripe'`, `'mongoatlas'`, or `'clerk'` |
+| `service` | *(required)* | `'vercel'`, `'github'`, `'google'`, `'discord'`, `'slack'`, `'apple'`, `'microsoft'`, `'okta'`, `'aws'`, `'resend'`, `'stripe'`, `'mongoatlas'`, or `'clerk'` |
 | `port` | `4000` | Port for the HTTP server |
 | `seed` | none | Inline seed data (same shape as YAML config) |
 | `baseUrl` | none | Override advertised base URL. Per-service `baseUrl` in seed config takes highest priority, then this option, then `EMULATE_BASE_URL` env var (supports `{service}`), then `PORTLESS_URL` (supports `{service}`, automatically set by the `portless` CLI wrapper), then `http://localhost:<port>`. |
@@ -188,6 +188,22 @@ google:
       client_secret: GOCSPX-secret
       redirect_uris:
         - http://localhost:3000/api/auth/callback/google
+
+discord:
+  guild:
+    name: My Discord Server
+  bot:
+    username: my-bot
+    token: test-token
+  users:
+    - username: developer
+      global_name: Developer
+      email: dev@example.com
+  channels:
+    - name: general
+      topic: General discussion
+    - name: ops
+      topic: Ops alerts
 
 slack:
   team:
@@ -301,6 +317,7 @@ Set environment variables to override real service URLs:
 VERCEL_EMULATOR_URL=http://localhost:4000
 GITHUB_EMULATOR_URL=http://localhost:4000
 GOOGLE_EMULATOR_URL=http://localhost:4000
+DISCORD_EMULATOR_URL=http://localhost:4000
 SLACK_EMULATOR_URL=http://localhost:4000
 APPLE_EMULATOR_URL=http://localhost:4000
 MICROSOFT_EMULATOR_URL=http://localhost:4000
@@ -315,7 +332,7 @@ Then use these in your app to construct API and OAuth URLs. See each service's s
 
 ## Next.js Integration
 
-The `@emulators/adapter-next` package proxies native runtime routes on the same Next.js origin. For native Go `apple`, `aws`, `clerk`, `github`, `google`, `microsoft`, `mongoatlas`, `okta`, `resend`, `slack`, `stripe`, and `vercel` previews on Vercel, run `npx emulate vercel init` to generate `api/emulate.go`, `vercel.json`, and `go.mod`. See the **next** skill (`skills/next/SKILL.md`) for setup, Auth.js configuration, Vercel Go Function state behavior, and `createEmulateProxy` details.
+The `@emulators/adapter-next` package proxies native runtime routes on the same Next.js origin. For native Go `apple`, `aws`, `clerk`, `discord`, `github`, `google`, `microsoft`, `mongoatlas`, `okta`, `resend`, `slack`, `stripe`, and `vercel` previews on Vercel, run `npx emulate vercel init` to generate `api/emulate.go`, `vercel.json`, and `go.mod`. See the **next** skill (`skills/next/SKILL.md`) for setup, Auth.js configuration, Vercel Go Function state behavior, and `createEmulateProxy` details.
 
 ## Persistence
 
@@ -332,6 +349,7 @@ packages/
     vercel/          # Vercel API metadata and compatibility package
     github/          # GitHub API metadata and compatibility package
     google/          # Google metadata and compatibility package
+    discord/         # Discord metadata and compatibility package
     slack/           # Slack metadata and compatibility package
     apple/           # Apple metadata and compatibility package
     microsoft/       # Microsoft metadata and compatibility package

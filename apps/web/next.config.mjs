@@ -9,6 +9,7 @@ const oldDocsSlugs = [
   "vercel",
   "github",
   "google",
+  "discord",
   "slack",
   "apple",
   "microsoft",

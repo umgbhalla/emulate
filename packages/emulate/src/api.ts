@@ -8,6 +8,7 @@ export const SERVICE_NAMES = [
   "vercel",
   "github",
   "google",
+  "discord",
   "slack",
   "apple",
   "microsoft",

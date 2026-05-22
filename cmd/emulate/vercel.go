@@ -21,7 +21,7 @@ var defaultVercelRewrite = map[string]string{
 	"destination": "/api/emulate?path=:path*",
 }
 
-var supportedVercelServices = []string{"apple", "aws", "clerk", "github", "google", "microsoft", "mongoatlas", "okta", "resend", "slack", "stripe", "vercel"}
+var supportedVercelServices = []string{"apple", "aws", "clerk", "discord", "github", "google", "microsoft", "mongoatlas", "okta", "resend", "slack", "stripe", "vercel"}
 
 type vercelScaffoldResult struct {
 	Created   []string

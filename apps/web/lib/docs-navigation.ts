@@ -11,6 +11,7 @@ export const allDocsPages: NavItem[] = [
   { name: "Vercel API", href: "/docs/vercel" },
   { name: "GitHub API", href: "/docs/github" },
   { name: "Google API", href: "/docs/google" },
+  { name: "Discord API", href: "/docs/discord" },
   { name: "Slack API", href: "/docs/slack" },
   { name: "Apple Sign In", href: "/docs/apple" },
   { name: "Microsoft Entra ID", href: "/docs/microsoft" },

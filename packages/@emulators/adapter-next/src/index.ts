@@ -96,6 +96,7 @@ const NATIVE_SERVICE_NAMES = [
   "vercel",
   "github",
   "google",
+  "discord",
   "slack",
   "apple",
   "microsoft",

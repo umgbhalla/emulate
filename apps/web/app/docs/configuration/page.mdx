@@ -190,6 +190,26 @@ Google Workspace accounts include an `hd` claim in ID tokens and userinfo respon
 
 To override the derived value, set `hd` on a seeded user. To suppress the claim entirely, set `hd` to an empty string.
 
+## Discord Seed Config
+
+```yaml
+discord:
+  guild:
+    name: My Discord Server
+  bot:
+    username: my-bot
+    token: test-token
+  users:
+    - username: developer
+      global_name: Developer
+      email: dev@example.com
+  channels:
+    - name: general
+      topic: General discussion
+    - name: ops
+      topic: Ops alerts
+```
+
 ## Slack Seed Config
 
 ```yaml

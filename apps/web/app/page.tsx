@@ -11,7 +11,7 @@ export default function LandingPage() {
           Local API emulation for dev and CI
         </h1>
         <p className="mb-8 max-w-xl text-base text-neutral-600 dark:text-neutral-400">
-          Stateful, production-fidelity replacements for Stripe, GitHub, Google, AWS, and 8 more services. No API keys.
+          Stateful, production-fidelity replacements for Stripe, GitHub, Google, AWS, and 9 more services. No API keys.
           No network. Not mocks.
         </p>
 
@@ -54,7 +54,7 @@ export default function LandingPage() {
             <div>
               <h3 className="mb-1 text-sm font-medium text-neutral-900 dark:text-neutral-100">Real protocols</h3>
               <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                OAuth flows with RS256 ID tokens. AWS XML responses. Slack cursor pagination. Your SDK works without
+                OAuth flows with RS256 ID tokens. AWS XML responses. Discord REST messages. Your SDK works without
                 changes.
               </p>
             </div>
@@ -62,7 +62,7 @@ export default function LandingPage() {
               <h3 className="mb-1 text-sm font-medium text-neutral-900 dark:text-neutral-100">Zero config</h3>
               <p className="text-sm text-neutral-600 dark:text-neutral-400">
                 Run <code className="rounded bg-neutral-100 px-1 py-0.5 text-xs dark:bg-neutral-800">npx emulate</code>{" "}
-                and all 12 services start with sensible defaults. Seed data via YAML when you need it.
+                and all 13 services start with sensible defaults. Seed data via YAML when you need it.
               </p>
             </div>
             <div>

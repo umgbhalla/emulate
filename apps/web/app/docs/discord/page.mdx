@@ -1,0 +1,71 @@
+# Discord API
+
+Stateful Discord REST API emulation with bot auth, guilds, channels, members, messages, seed config, and a message inspector.
+
+The native Go runtime implements the Discord REST surface for local CLI runs and Vercel Go Function previews. In native CLI runs with multiple services enabled, open `/discord` for the message inspector. When only Discord is enabled, and in Vercel Go Function previews, the inspector is available at the service root. To expose Discord on a Vercel preview without separate infrastructure, run:
+
+```bash
+npx emulate vercel init --service discord
+```
+
+The generated route serves Discord at `/emulate/discord/*`.
+
+## Auth
+
+Use the seeded bot token:
+
+```http
+Authorization: Bot test-token
+```
+
+Seed a custom token under `discord.bot.token`.
+
+## Bot and Application
+
+- `GET /api/v10/users/@me` - current bot user
+- `GET /api/v10/oauth2/applications/@me` - current application
+
+## Guilds and Members
+
+- `GET /api/v10/users/@me/guilds` - list guilds
+- `GET /api/v10/guilds/:guildId` - get guild
+- `GET /api/v10/guilds/:guildId/members` - list guild members
+- `GET /api/v10/guilds/:guildId/members/:userId` - get guild member
+
+## Channels
+
+- `GET /api/v10/guilds/:guildId/channels` - list guild channels
+- `GET /api/v10/channels/:channelId` - get channel
+
+## Messages
+
+- `GET /api/v10/channels/:channelId/messages` - message history
+- `POST /api/v10/channels/:channelId/messages` - create message
+- `PATCH /api/v10/channels/:channelId/messages/:messageId` - edit message
+- `DELETE /api/v10/channels/:channelId/messages/:messageId` - delete message
+
+`/api/v9/*` and `/api/*` aliases are also mounted for common client configurations.
+
+## Seed Config
+
+```yaml
+discord:
+  guild:
+    name: Acme
+  bot:
+    username: acme-bot
+    token: acme-token
+  users:
+    - username: alice
+      global_name: Alice
+      email: alice@example.com
+  channels:
+    - name: general
+      topic: General discussion
+    - name: ops
+      topic: Ops alerts
+```
+
+## Not Implemented Yet
+
+Gateway connections, slash-command interaction callbacks, and OAuth install flows are not implemented in the native Discord engine yet.

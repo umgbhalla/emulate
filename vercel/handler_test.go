@@ -35,7 +35,7 @@ func TestHandlerServesPreviewHealth(t *testing.T) {
 	if !body.OK || body.Adapter != "vercel" || body.Runtime != "go" || body.Version != "test" || body.RoutePrefix != "/emulate" {
 		t.Fatalf("unexpected body: %#v", body)
 	}
-	if strings.Join(body.Services, ",") != "apple,aws,clerk,github,google,microsoft,mongoatlas,okta,resend,slack,stripe,vercel" {
+	if strings.Join(body.Services, ",") != "apple,aws,clerk,discord,github,google,microsoft,mongoatlas,okta,resend,slack,stripe,vercel" {
 		t.Fatalf("services = %#v", body.Services)
 	}
 }
@@ -237,6 +237,22 @@ func TestHandlerForwardsSlackService(t *testing.T) {
 		t.Fatalf("status = %d, body = %s", res.Code, res.Body.String())
 	}
 	if !strings.Contains(res.Body.String(), `"team":"Emulate"`) || !strings.Contains(res.Body.String(), `"user_id":"U000000001"`) {
+		t.Fatalf("unexpected body: %s", res.Body.String())
+	}
+}
+
+func TestHandlerForwardsDiscordService(t *testing.T) {
+	handler := NewHandler(Options{Services: []string{"discord"}})
+	req := httptest.NewRequest(http.MethodGet, "https://preview.example.com/emulate/discord/api/v10/users/@me", nil)
+	req.Header.Set("Authorization", "Bot test-token")
+	res := httptest.NewRecorder()
+
+	handler.ServeHTTP(res, req)
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", res.Code, res.Body.String())
+	}
+	if !strings.Contains(res.Body.String(), `"username":"emulate-bot"`) {
 		t.Fatalf("unexpected body: %s", res.Body.String())
 	}
 }

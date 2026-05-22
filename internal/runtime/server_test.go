@@ -253,6 +253,64 @@ func TestNewHandlerDoesNotMountSlackWhenDisabled(t *testing.T) {
 	}
 }
 
+func TestNewHandlerMountsDiscordWhenEnabled(t *testing.T) {
+	handler := NewHandler(ServerOptions{Services: []string{"discord"}})
+
+	res := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v10/users/@me", nil)
+	req.Header.Set("Authorization", "Bot test-token")
+	handler.ServeHTTP(res, req)
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", res.Code, res.Body.String())
+	}
+	if !strings.Contains(res.Body.String(), `"username":"emulate-bot"`) || !strings.Contains(res.Body.String(), `"bot":true`) {
+		t.Fatalf("unexpected body: %s", res.Body.String())
+	}
+}
+
+func TestNewHandlerDoesNotMountDiscordWhenDisabled(t *testing.T) {
+	handler := NewHandler(ServerOptions{Services: []string{"resend"}})
+
+	res := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v10/users/@me", nil)
+	req.Header.Set("Authorization", "Bot test-token")
+	handler.ServeHTTP(res, req)
+
+	if res.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, body = %s", res.Code, res.Body.String())
+	}
+}
+
+func TestNewHandlerMultiServiceDiscordServesInspectorAtDiscordPath(t *testing.T) {
+	handler := NewHandler(ServerOptions{Services: []string{"aws", "discord"}})
+
+	res := httptest.NewRecorder()
+	handler.ServeHTTP(res, httptest.NewRequest(http.MethodGet, "/discord", nil))
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", res.Code, res.Body.String())
+	}
+	body := res.Body.String()
+	if !strings.Contains(body, "Message Inspector") || !strings.Contains(body, `href="/discord?channel=`) {
+		t.Fatalf("unexpected body: %s", body)
+	}
+}
+
+func TestNewHandlerDiscordOnlyServesRootInspector(t *testing.T) {
+	handler := NewHandler(ServerOptions{Services: []string{"discord"}})
+
+	res := httptest.NewRecorder()
+	handler.ServeHTTP(res, httptest.NewRequest(http.MethodGet, "/", nil))
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", res.Code, res.Body.String())
+	}
+	if !strings.Contains(res.Body.String(), "Message Inspector") {
+		t.Fatalf("unexpected body: %s", res.Body.String())
+	}
+}
+
 func TestNewHandlerMountsStripeWhenEnabled(t *testing.T) {
 	handler := NewHandler(ServerOptions{Services: []string{"stripe"}, BaseURL: "http://localhost:4020"})
 

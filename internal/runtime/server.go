@@ -11,6 +11,7 @@ import (
 	"github.com/vercel-labs/emulate/internal/services/apple"
 	"github.com/vercel-labs/emulate/internal/services/aws"
 	"github.com/vercel-labs/emulate/internal/services/clerk"
+	"github.com/vercel-labs/emulate/internal/services/discord"
 	"github.com/vercel-labs/emulate/internal/services/github"
 	"github.com/vercel-labs/emulate/internal/services/google"
 	"github.com/vercel-labs/emulate/internal/services/microsoft"
@@ -33,6 +34,7 @@ type ServerOptions struct {
 	AppleSeed      *apple.SeedConfig
 	AWSSeed        *aws.SeedConfig
 	ClerkSeed      *clerk.SeedConfig
+	DiscordSeed    *discord.SeedConfig
 	GitHubSeed     *github.SeedConfig
 	GoogleSeed     *google.SeedConfig
 	MicrosoftSeed  *microsoft.SeedConfig
@@ -121,6 +123,13 @@ func NewServer(options ServerOptions) *Server {
 		resend.Register(router, resend.Options{
 			Store: runtimeStore,
 			Seed:  options.ResendSeed,
+		})
+	}
+	if serviceEnabled(services, "discord") {
+		discord.Register(router, discord.Options{
+			Store:         runtimeStore,
+			Seed:          options.DiscordSeed,
+			RootInspector: len(services) == 1,
 		})
 	}
 	if serviceEnabled(services, "slack") {

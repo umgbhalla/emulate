@@ -4,7 +4,7 @@ import "testing"
 
 func TestServiceNamesPreserveRegistryOrder(t *testing.T) {
 	got := ServiceNames()
-	want := []string{"vercel", "github", "google", "slack", "apple", "microsoft", "okta", "aws", "resend", "stripe", "mongoatlas", "clerk"}
+	want := []string{"vercel", "github", "google", "discord", "slack", "apple", "microsoft", "okta", "aws", "resend", "stripe", "mongoatlas", "clerk"}
 	if len(got) != len(want) {
 		t.Fatalf("got %d services, want %d", len(got), len(want))
 	}

@@ -23,6 +23,7 @@ import (
 	"github.com/vercel-labs/emulate/internal/services/apple"
 	"github.com/vercel-labs/emulate/internal/services/aws"
 	"github.com/vercel-labs/emulate/internal/services/clerk"
+	"github.com/vercel-labs/emulate/internal/services/discord"
 	"github.com/vercel-labs/emulate/internal/services/github"
 	"github.com/vercel-labs/emulate/internal/services/google"
 	"github.com/vercel-labs/emulate/internal/services/microsoft"
@@ -40,6 +41,7 @@ type nativeSeedOptions struct {
 	Apple      *apple.SeedConfig
 	AWS        *aws.SeedConfig
 	Clerk      *clerk.SeedConfig
+	Discord    *discord.SeedConfig
 	GitHub     *github.SeedConfig
 	Google     *google.SeedConfig
 	Microsoft  *microsoft.SeedConfig
@@ -131,6 +133,7 @@ func runStart(ctx context.Context, args []string, stdout io.Writer, stderr io.Wr
 	var appleSeed *apple.SeedConfig
 	var awsSeed *aws.SeedConfig
 	var clerkSeed *clerk.SeedConfig
+	var discordSeed *discord.SeedConfig
 	var githubSeed *github.SeedConfig
 	var googleSeed *google.SeedConfig
 	var microsoftSeed *microsoft.SeedConfig
@@ -149,7 +152,7 @@ func runStart(ctx context.Context, args []string, stdout io.Writer, stderr io.Wr
 	}
 	if loaded != nil {
 		if unsupported := unsupportedNativeSeedServices(loaded.Data); len(unsupported) > 0 {
-			fmt.Fprintf(stderr, "The native Go runtime only supports --seed for apple, aws, clerk, github, google, microsoft, mongoatlas, okta, resend, slack, stripe, and vercel. Unsupported seed config services: %s\n", strings.Join(unsupported, ", "))
+			fmt.Fprintf(stderr, "The native Go runtime only supports --seed for apple, aws, clerk, discord, github, google, microsoft, mongoatlas, okta, resend, slack, stripe, and vercel. Unsupported seed config services: %s\n", strings.Join(unsupported, ", "))
 			return 1
 		}
 		seedServices = coreconfig.InferServices(loaded.Data, nativeSeedServiceNames())
@@ -210,6 +213,14 @@ func runStart(ctx context.Context, args []string, stdout io.Writer, stderr io.Wr
 				return 1
 			}
 			clerkSeed = &cfg
+		}
+		if raw, ok := loaded.Data["discord"]; ok {
+			var cfg discord.SeedConfig
+			if err := json.Unmarshal(raw, &cfg); err != nil {
+				fmt.Fprintf(stderr, "Failed to parse discord seed config: %v\n", err)
+				return 1
+			}
+			discordSeed = &cfg
 		}
 		if raw, ok := loaded.Data["microsoft"]; ok {
 			var cfg microsoft.SeedConfig
@@ -298,6 +309,7 @@ func runStart(ctx context.Context, args []string, stdout io.Writer, stderr io.Wr
 		Apple:      appleSeed,
 		AWS:        awsSeed,
 		Clerk:      clerkSeed,
+		Discord:    discordSeed,
 		GitHub:     githubSeed,
 		Google:     googleSeed,
 		Microsoft:  microsoftSeed,
@@ -474,6 +486,7 @@ func serverOptions(baseURL string, services []string, seeds nativeSeedOptions) e
 		AppleSeed:      seeds.Apple,
 		AWSSeed:        seeds.AWS,
 		ClerkSeed:      seeds.Clerk,
+		DiscordSeed:    seeds.Discord,
 		GitHubSeed:     seeds.GitHub,
 		GoogleSeed:     seeds.Google,
 		MicrosoftSeed:  seeds.Microsoft,
@@ -631,7 +644,7 @@ func parseServices(value string) ([]string, error) {
 }
 
 func nativeSeedServiceNames() []string {
-	return []string{"apple", "aws", "clerk", "github", "google", "microsoft", "mongoatlas", "okta", "resend", "slack", "stripe", "vercel"}
+	return []string{"apple", "aws", "clerk", "discord", "github", "google", "microsoft", "mongoatlas", "okta", "resend", "slack", "stripe", "vercel"}
 }
 
 func unsupportedNativeSeedServices(data map[string]json.RawMessage) []string {

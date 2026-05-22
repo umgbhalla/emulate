@@ -833,6 +833,7 @@ function isServiceName(service: string): service is ServiceName {
     "vercel",
     "github",
     "google",
+    "discord",
     "slack",
     "apple",
     "microsoft",
