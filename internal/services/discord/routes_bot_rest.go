@@ -79,6 +79,89 @@ func (s *Service) handleGetMessage(c *corehttp.Context) {
 	c.JSON(http.StatusOK, s.formatMessage(message))
 }
 
+func (s *Service) handleCreateGuild(c *corehttp.Context) {
+	user, ok := s.authenticatedUser(c)
+	if !ok {
+		return
+	}
+	body := parseDiscordBody(c.Request)
+	name := strings.TrimSpace(stringValue(body["name"]))
+	if name == "" {
+		discordError(c, http.StatusBadRequest, "Invalid Form Body", 50035)
+		return
+	}
+	guildID := generateDiscordID()
+	guild := s.store.Guilds.Insert(corestore.Record{
+		"guild_id": guildID,
+		"name":     name,
+		"icon":     body["icon"],
+		"owner_id": firstNonEmpty(stringValue(body["owner_id"]), stringField(user, "user_id")),
+	})
+	s.store.Roles.Insert(roleRecord(roleInput{
+		RoleID:      guildID,
+		GuildID:     guildID,
+		Name:        "@everyone",
+		Permissions: "8",
+	}))
+	c.JSON(http.StatusCreated, formatGuild(guild))
+}
+
+func (s *Service) handleUpdateGuild(c *corehttp.Context) {
+	if _, ok := s.authenticatedUser(c); !ok {
+		return
+	}
+	guild := s.findGuild(c.Param("guildId"))
+	if guild == nil {
+		discordError(c, http.StatusNotFound, "Unknown Guild", 10004)
+		return
+	}
+	body := parseDiscordBody(c.Request)
+	patch := corestore.Record{}
+	if _, ok := body["name"]; ok {
+		patch["name"] = stringValue(body["name"])
+	}
+	if _, ok := body["icon"]; ok {
+		patch["icon"] = body["icon"]
+	}
+	if _, ok := body["owner_id"]; ok {
+		patch["owner_id"] = stringValue(body["owner_id"])
+	}
+	updated, _ := s.store.Guilds.Update(intField(guild, "id"), patch)
+	c.JSON(http.StatusOK, formatGuild(updated))
+}
+
+func (s *Service) handleDeleteGuild(c *corehttp.Context) {
+	if _, ok := s.authenticatedUser(c); !ok {
+		return
+	}
+	guild := s.findGuild(c.Param("guildId"))
+	if guild == nil {
+		discordError(c, http.StatusNotFound, "Unknown Guild", 10004)
+		return
+	}
+	guildID := stringField(guild, "guild_id")
+	for _, message := range s.store.Messages.FindBy("guild_id", guildID) {
+		s.store.Messages.Delete(intField(message, "id"))
+	}
+	for _, channel := range s.store.Channels.FindBy("guild_id", guildID) {
+		s.store.Channels.Delete(intField(channel, "id"))
+	}
+	for _, role := range s.store.Roles.FindBy("guild_id", guildID) {
+		s.store.Roles.Delete(intField(role, "id"))
+	}
+	for _, memberRole := range s.store.MemberRoles.FindBy("guild_id", guildID) {
+		s.store.MemberRoles.Delete(intField(memberRole, "id"))
+	}
+	for _, webhook := range s.store.Webhooks.FindBy("guild_id", guildID) {
+		s.store.Webhooks.Delete(intField(webhook, "id"))
+	}
+	for _, command := range s.store.ApplicationCommands.FindBy("guild_id", guildID) {
+		s.store.ApplicationCommands.Delete(intField(command, "id"))
+	}
+	s.store.Guilds.Delete(intField(guild, "id"))
+	c.Writer.WriteHeader(http.StatusNoContent)
+}
+
 func (s *Service) handleTyping(c *corehttp.Context) {
 	if _, ok := s.authenticatedUser(c); !ok {
 		return

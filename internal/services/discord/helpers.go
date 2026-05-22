@@ -2,11 +2,14 @@ package discord
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -54,6 +57,31 @@ func parseDiscordBody(r *http.Request) map[string]any {
 	return body
 }
 
+func parseDiscordOAuthBody(r *http.Request) map[string]any {
+	raw, _ := io.ReadAll(r.Body)
+	if len(strings.TrimSpace(string(raw))) == 0 {
+		return map[string]any{}
+	}
+	if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		var body map[string]any
+		if err := json.Unmarshal(raw, &body); err == nil && body != nil {
+			return body
+		}
+		return map[string]any{}
+	}
+	values, err := url.ParseQuery(string(raw))
+	if err != nil {
+		return map[string]any{}
+	}
+	body := map[string]any{}
+	for key, value := range values {
+		if len(value) > 0 {
+			body[key] = value[0]
+		}
+	}
+	return body
+}
+
 func parseDiscordBodyArray(r *http.Request) []map[string]any {
 	raw, _ := io.ReadAll(r.Body)
 	if len(strings.TrimSpace(string(raw))) == 0 {
@@ -93,6 +121,22 @@ func discordAuthToken(value string) string {
 		}
 	}
 	return value
+}
+
+func basicAuthCredentials(value string) (string, string, bool) {
+	value = strings.TrimSpace(value)
+	if !strings.HasPrefix(value, "Basic ") {
+		return "", "", false
+	}
+	decoded, err := base64.StdEncoding.DecodeString(strings.TrimSpace(strings.TrimPrefix(value, "Basic ")))
+	if err != nil {
+		return "", "", false
+	}
+	parts := strings.SplitN(string(decoded), ":", 2)
+	if len(parts) != 2 {
+		return "", "", false
+	}
+	return parts[0], parts[1], true
 }
 
 func discordError(c *corehttp.Context, status int, message string, code int) {
@@ -207,4 +251,31 @@ func stringSliceValue(value any) []string {
 	default:
 		return nil
 	}
+}
+
+func constantTimeEqual(a string, b string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
+}
+
+func matchesRedirectURI(value string, allowed []string) bool {
+	if value == "" {
+		return true
+	}
+	valueURL, err := url.Parse(value)
+	if err != nil {
+		return false
+	}
+	for _, candidate := range allowed {
+		candidateURL, err := url.Parse(candidate)
+		if err != nil {
+			continue
+		}
+		if valueURL.Scheme == candidateURL.Scheme && valueURL.Host == candidateURL.Host && strings.TrimRight(valueURL.Path, "/") == strings.TrimRight(candidateURL.Path, "/") {
+			return true
+		}
+	}
+	return false
 }

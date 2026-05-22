@@ -1,6 +1,6 @@
 # @emulators/discord
 
-Metadata package for the Discord REST API emulator. The service implementation runs in the native Go engine distributed by the `emulate` npm package. It covers bot auth, guilds, channels, members, roles, messages, reactions, webhooks, and application command registration.
+Metadata package for the Discord REST API emulator. The service implementation runs in the native Go engine distributed by the `emulate` npm package. It covers bot auth, OAuth authorization code flows, guilds, channels, members, roles, messages, reactions, webhooks, and application command registration.
 
 ```bash
 npm install emulate @emulators/discord

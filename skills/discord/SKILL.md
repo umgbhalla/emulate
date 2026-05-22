@@ -50,8 +50,14 @@ await discord.close()
 - `GET /api/v10/users/@me` - current bot user
 - `GET /api/v10/oauth2/applications/@me` - current application
 - `GET /api/v10/gateway` and `GET /api/v10/gateway/bot` - gateway metadata
+- `GET /oauth2/authorize` - authorization page with seeded user picker
+- `POST /oauth2/authorize/callback` - local authorization callback
+- `POST /oauth2/token` and `/api/v10/oauth2/token` - authorization code token exchange
 - `GET /api/v10/users/@me/guilds` - guild list
+- `POST /api/v10/guilds` - create guild
 - `GET /api/v10/guilds/:guildId` - guild detail
+- `PATCH /api/v10/guilds/:guildId` - update guild
+- `DELETE /api/v10/guilds/:guildId` - delete guild
 - `GET /api/v10/guilds/:guildId/channels` - guild channels
 - `POST /api/v10/guilds/:guildId/channels` - create channel
 - `GET /api/v10/guilds/:guildId/members` - guild members
@@ -89,6 +95,11 @@ await discord.close()
 
 ```yaml
 discord:
+  application:
+    client_id: discord-client-id
+    client_secret: discord-client-secret
+    redirect_uris:
+      - http://localhost:3000/api/auth/callback/discord
   guild:
     name: Acme
   bot:
@@ -107,4 +118,4 @@ discord:
 
 ## Client Notes
 
-Point REST clients at the emulator base URL and use `Bot test-token` or your seeded bot token. Gateway WebSocket connections and inbound slash-command interaction simulation are not implemented in the native Discord engine yet.
+Point REST clients at the emulator base URL and use `Bot test-token` or your seeded bot token. OAuth clients can use the seeded `discord-client-id` and `discord-client-secret`. Gateway WebSocket connections and inbound slash-command interaction simulation are not implemented in the native Discord engine yet.

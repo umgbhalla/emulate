@@ -30,8 +30,12 @@ type SeedConfig struct {
 }
 
 type ApplicationSeed struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID           string   `json:"id"`
+	ClientID     string   `json:"client_id"`
+	ClientSecret string   `json:"client_secret"`
+	Name         string   `json:"name"`
+	RedirectURIs []string `json:"redirect_uris"`
+	PublicKey    string   `json:"public_key"`
 }
 
 type GuildSeed struct {
@@ -95,6 +99,7 @@ func (s *Service) RegisterRoutes(router *corehttp.Router) {
 	for _, prefix := range []string{"/api/v10", "/api/v9", "/api"} {
 		s.registerAPIRoutes(router, prefix)
 	}
+	s.registerOAuthRoutes(router)
 	router.Get("/discord", s.handleInspector)
 	if s.rootInspector {
 		router.Get("/", s.handleInspector)
@@ -107,7 +112,10 @@ func (s *Service) registerAPIRoutes(router *corehttp.Router, prefix string) {
 	router.Get(prefix+"/users/@me", s.handleCurrentUser)
 	router.Get(prefix+"/users/@me/guilds", s.handleCurrentUserGuilds)
 	router.Get(prefix+"/oauth2/applications/@me", s.handleCurrentApplication)
+	router.Post(prefix+"/guilds", s.handleCreateGuild)
 	router.Get(prefix+"/guilds/:guildId", s.handleGetGuild)
+	router.Patch(prefix+"/guilds/:guildId", s.handleUpdateGuild)
+	router.Delete(prefix+"/guilds/:guildId", s.handleDeleteGuild)
 	router.Get(prefix+"/guilds/:guildId/channels", s.handleGuildChannels)
 	router.Post(prefix+"/guilds/:guildId/channels", s.handleCreateGuildChannel)
 	router.Get(prefix+"/guilds/:guildId/members", s.handleGuildMembers)
@@ -176,8 +184,15 @@ func (s *Service) SeedDefaults() {
 	userID := "200000000000000002"
 	s.store.Applications.Insert(corestore.Record{
 		"application_id": "900000000000000001",
+		"client_id":      "discord-client-id",
+		"client_secret":  "discord-client-secret",
 		"name":           "Emulate Discord App",
 		"bot_id":         botID,
+		"redirect_uris": []string{
+			"http://localhost:3000/api/auth/callback/discord",
+			"http://localhost:3000/callback",
+		},
+		"public_key": "",
 	})
 	s.store.Guilds.Insert(corestore.Record{
 		"guild_id": guildID,
@@ -291,10 +306,37 @@ func (s *Service) SeedFromConfig(config SeedConfig) {
 		if name == "" {
 			name = "Emulate Discord App"
 		}
+		clientID := config.Application.ClientID
+		if clientID == "" {
+			clientID = applicationID
+		}
+		clientSecret := config.Application.ClientSecret
+		if clientSecret == "" {
+			clientSecret = generateDiscordToken()
+		}
+		redirectURIs := config.Application.RedirectURIs
+		if redirectURIs == nil {
+			redirectURIs = []string{}
+		}
 		if app := firstRecord(s.store.Applications.FindBy("application_id", applicationID)); app != nil {
-			s.store.Applications.Update(intField(app, "id"), corestore.Record{"name": name, "bot_id": botID})
+			s.store.Applications.Update(intField(app, "id"), corestore.Record{
+				"name":          name,
+				"bot_id":        botID,
+				"client_id":     clientID,
+				"client_secret": clientSecret,
+				"redirect_uris": redirectURIs,
+				"public_key":    config.Application.PublicKey,
+			})
 		} else {
-			s.store.Applications.Insert(corestore.Record{"application_id": applicationID, "name": name, "bot_id": botID})
+			s.store.Applications.Insert(corestore.Record{
+				"application_id": applicationID,
+				"client_id":      clientID,
+				"client_secret":  clientSecret,
+				"name":           name,
+				"bot_id":         botID,
+				"redirect_uris":  redirectURIs,
+				"public_key":     config.Application.PublicKey,
+			})
 		}
 	}
 
@@ -466,6 +508,8 @@ func (s *Service) handleCurrentApplication(c *corehttp.Context) {
 	c.JSON(http.StatusOK, map[string]any{
 		"id":                     stringField(app, "application_id"),
 		"name":                   stringField(app, "name"),
+		"description":            "",
+		"verify_key":             stringField(app, "public_key"),
 		"bot_public":             true,
 		"bot_require_code_grant": false,
 		"bot":                    formatUser(user),

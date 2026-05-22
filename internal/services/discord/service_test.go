@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -177,6 +178,36 @@ func TestDiscordBotRestHelpers(t *testing.T) {
 	}
 }
 
+func TestDiscordGuildLifecycle(t *testing.T) {
+	handler := newDiscordTestHandler()
+
+	res, body := discordRequest(handler, http.MethodPost, "/api/v10/guilds", "{\"name\":\"Created Guild\"}")
+	if res.Code != http.StatusCreated || body["name"] != "Created Guild" {
+		t.Fatalf("unexpected create guild response: status=%d body=%s", res.Code, res.Body.String())
+	}
+	guildID := body["id"].(string)
+
+	res, body = discordRequest(handler, http.MethodPatch, "/api/v10/guilds/"+guildID, "{\"name\":\"Renamed Guild\"}")
+	if res.Code != http.StatusOK || body["name"] != "Renamed Guild" {
+		t.Fatalf("unexpected update guild response: status=%d body=%s", res.Code, res.Body.String())
+	}
+
+	res, _ = discordRequest(handler, http.MethodPost, "/api/v10/guilds/"+guildID+"/channels", "{\"name\":\"guild-local\"}")
+	if res.Code != http.StatusCreated {
+		t.Fatalf("unexpected create guild channel response: status=%d body=%s", res.Code, res.Body.String())
+	}
+
+	res, _ = discordRequest(handler, http.MethodDelete, "/api/v10/guilds/"+guildID, "")
+	if res.Code != http.StatusNoContent {
+		t.Fatalf("unexpected delete guild response: status=%d body=%s", res.Code, res.Body.String())
+	}
+
+	res, _ = discordRequest(handler, http.MethodGet, "/api/v10/guilds/"+guildID, "")
+	if res.Code != http.StatusNotFound {
+		t.Fatalf("expected deleted guild to be gone: status=%d body=%s", res.Code, res.Body.String())
+	}
+}
+
 func TestDiscordRolesWebhooksAndApplicationCommands(t *testing.T) {
 	handler := newDiscordTestHandler()
 
@@ -221,6 +252,68 @@ func TestDiscordRolesWebhooksAndApplicationCommands(t *testing.T) {
 	res, body = discordRequest(handler, http.MethodPatch, "/api/v10/webhooks/"+webhookID+"/"+webhookToken+"/messages/"+messageID, "{\"content\":\"edited webhook\"}")
 	if res.Code != http.StatusOK || body["content"] != "edited webhook" {
 		t.Fatalf("unexpected update webhook message response: status=%d body=%s", res.Code, res.Body.String())
+	}
+}
+
+func TestDiscordOAuthAuthorizationCodeFlow(t *testing.T) {
+	handler := newDiscordTestHandler()
+	redirectURI := "http://localhost:3000/api/auth/callback/discord"
+
+	authorize := httptest.NewRequest(http.MethodGet, "/oauth2/authorize?client_id=discord-client-id&redirect_uri="+url.QueryEscape(redirectURI)+"&scope=identify%20guilds&state=abc", nil)
+	authorizeRes := httptest.NewRecorder()
+	handler.ServeHTTP(authorizeRes, authorize)
+	if authorizeRes.Code != http.StatusOK || !strings.Contains(authorizeRes.Body.String(), "Sign in to Discord") || !strings.Contains(authorizeRes.Body.String(), "developer") {
+		t.Fatalf("unexpected authorize page: status=%d body=%s", authorizeRes.Code, authorizeRes.Body.String())
+	}
+
+	form := url.Values{
+		"user_id":      {"200000000000000002"},
+		"client_id":    {"discord-client-id"},
+		"redirect_uri": {redirectURI},
+		"scope":        {"identify guilds"},
+		"state":        {"abc"},
+	}
+	callback := httptest.NewRequest(http.MethodPost, "/oauth2/authorize/callback", strings.NewReader(form.Encode()))
+	callback.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	callbackRes := httptest.NewRecorder()
+	handler.ServeHTTP(callbackRes, callback)
+	if callbackRes.Code != http.StatusFound {
+		t.Fatalf("unexpected callback response: status=%d body=%s", callbackRes.Code, callbackRes.Body.String())
+	}
+	location, err := url.Parse(callbackRes.Header().Get("Location"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	code := location.Query().Get("code")
+	if code == "" || location.Query().Get("state") != "abc" {
+		t.Fatalf("unexpected callback location: %s", callbackRes.Header().Get("Location"))
+	}
+
+	tokenForm := url.Values{
+		"grant_type":    {"authorization_code"},
+		"code":          {code},
+		"client_id":     {"discord-client-id"},
+		"client_secret": {"discord-client-secret"},
+		"redirect_uri":  {redirectURI},
+	}
+	tokenReq := httptest.NewRequest(http.MethodPost, "/api/v10/oauth2/token", strings.NewReader(tokenForm.Encode()))
+	tokenReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	tokenRes := httptest.NewRecorder()
+	handler.ServeHTTP(tokenRes, tokenReq)
+	var tokenBody map[string]any
+	if err := json.Unmarshal(tokenRes.Body.Bytes(), &tokenBody); err != nil {
+		t.Fatal(err)
+	}
+	if tokenRes.Code != http.StatusOK || tokenBody["token_type"] != "Bearer" || tokenBody["access_token"] == "" {
+		t.Fatalf("unexpected token response: status=%d body=%s", tokenRes.Code, tokenRes.Body.String())
+	}
+
+	meReq := httptest.NewRequest(http.MethodGet, "/api/v10/users/@me", nil)
+	meReq.Header.Set("Authorization", "Bearer "+tokenBody["access_token"].(string))
+	meRes := httptest.NewRecorder()
+	handler.ServeHTTP(meRes, meReq)
+	if meRes.Code != http.StatusOK || !strings.Contains(meRes.Body.String(), "developer") {
+		t.Fatalf("unexpected bearer user response: status=%d body=%s", meRes.Code, meRes.Body.String())
 	}
 }
 

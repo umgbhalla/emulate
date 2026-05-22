@@ -27,10 +27,20 @@ Seed a custom token under `discord.bot.token`.
 - `GET /api/v10/gateway` - gateway metadata
 - `GET /api/v10/gateway/bot` - bot gateway metadata
 
+## OAuth
+
+- `GET /oauth2/authorize` - authorization page with seeded user picker
+- `POST /oauth2/authorize/callback` - local authorization callback
+- `POST /oauth2/token` - authorization code token exchange
+- `POST /api/v10/oauth2/token` - API-prefixed token exchange alias
+
 ## Guilds and Members
 
 - `GET /api/v10/users/@me/guilds` - list guilds
+- `POST /api/v10/guilds` - create guild
 - `GET /api/v10/guilds/:guildId` - get guild
+- `PATCH /api/v10/guilds/:guildId` - update guild
+- `DELETE /api/v10/guilds/:guildId` - delete guild
 - `GET /api/v10/guilds/:guildId/members` - list guild members
 - `GET /api/v10/guilds/:guildId/members/:userId` - get guild member
 - `PATCH /api/v10/guilds/:guildId/members/:userId` - update guild member roles
@@ -80,6 +90,11 @@ Seed a custom token under `discord.bot.token`.
 
 ```yaml
 discord:
+  application:
+    client_id: discord-client-id
+    client_secret: discord-client-secret
+    redirect_uris:
+      - http://localhost:3000/api/auth/callback/discord
   guild:
     name: Acme
   bot:
@@ -98,4 +113,4 @@ discord:
 
 ## Not Implemented Yet
 
-Gateway WebSocket connections, inbound slash-command interaction simulation, and OAuth install flows are not implemented in the native Discord engine yet.
+Gateway WebSocket connections and inbound slash-command interaction simulation are not implemented in the native Discord engine yet.

@@ -31,8 +31,12 @@ function compatCollection<T extends CompatEntity>(
 
 export interface DiscordApplication extends CompatEntity {
   application_id: string;
+  client_id: string;
+  client_secret: string;
   name: string;
   bot_id: string;
+  redirect_uris: string[];
+  public_key: string;
 }
 
 export interface DiscordGuild extends CompatEntity {
@@ -125,9 +129,26 @@ export interface DiscordToken extends CompatEntity {
   scopes: string[];
 }
 
+export interface DiscordOAuthCode extends CompatEntity {
+  code: string;
+  client_id: string;
+  redirect_uri: string;
+  scope: string;
+  state: string;
+  user_id: string;
+  created_at_ms: number;
+}
+
 export interface DiscordSeedConfig {
   port?: number;
-  application?: { id?: string; name?: string };
+  application?: {
+    id?: string;
+    client_id?: string;
+    client_secret?: string;
+    name?: string;
+    redirect_uris?: string[];
+    public_key?: string;
+  };
   guild?: { id?: string; name?: string };
   bot?: { id?: string; username?: string; token?: string };
   users?: Array<{ id?: string; username: string; global_name?: string; email?: string; bot?: boolean }>;
@@ -144,12 +165,13 @@ export interface DiscordStore {
   memberRoles: CompatCollection<DiscordMemberRole>;
   webhooks: CompatCollection<DiscordWebhook>;
   applicationCommands: CompatCollection<DiscordApplicationCommand>;
+  oauthCodes: CompatCollection<DiscordOAuthCode>;
   tokens: CompatCollection<DiscordToken>;
 }
 
 export function getDiscordStore(store: CompatStoreSource): DiscordStore {
   return {
-    applications: compatCollection<DiscordApplication>(store, "discord.applications", ["application_id"]),
+    applications: compatCollection<DiscordApplication>(store, "discord.applications", ["application_id", "client_id"]),
     guilds: compatCollection<DiscordGuild>(store, "discord.guilds", ["guild_id", "name"]),
     users: compatCollection<DiscordUser>(store, "discord.users", ["user_id", "username", "email"]),
     channels: compatCollection<DiscordChannel>(store, "discord.channels", ["channel_id", "guild_id", "name"]),
@@ -162,6 +184,7 @@ export function getDiscordStore(store: CompatStoreSource): DiscordStore {
       "application_id",
       "guild_id",
     ]),
+    oauthCodes: compatCollection<DiscordOAuthCode>(store, "discord.oauth_codes", ["code", "client_id"]),
     tokens: compatCollection<DiscordToken>(store, "discord.tokens", ["token"]),
   };
 }

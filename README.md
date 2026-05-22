@@ -241,6 +241,11 @@ google:
       parent_ids: [root]
 
 discord:
+  application:
+    client_id: discord-client-id
+    client_secret: discord-client-secret
+    redirect_uris:
+      - http://localhost:3000/api/auth/callback/discord
   guild:
     name: My Discord Server
   bot:
@@ -651,9 +656,18 @@ The native Go runtime implements the Discord REST surface for local CLI runs and
 - `GET /api/v10/oauth2/applications/@me` - current application
 - `GET /api/v10/gateway` and `GET /api/v10/gateway/bot` - gateway metadata for clients that discover the gateway over REST
 
+### OAuth
+- `GET /oauth2/authorize` - authorization page with seeded user picker
+- `POST /oauth2/authorize/callback` - local authorization callback
+- `POST /oauth2/token` - authorization code token exchange
+- `POST /api/v10/oauth2/token` - API-prefixed token exchange alias
+
 ### Guilds & Channels
 - `GET /api/v10/users/@me/guilds` - list guilds
+- `POST /api/v10/guilds` - create guild
 - `GET /api/v10/guilds/:guildId` - get guild
+- `PATCH /api/v10/guilds/:guildId` - update guild
+- `DELETE /api/v10/guilds/:guildId` - delete guild
 - `GET /api/v10/guilds/:guildId/channels` - list channels
 - `POST /api/v10/guilds/:guildId/channels` - create channel
 - `GET /api/v10/guilds/:guildId/members` - list members
@@ -1063,7 +1077,7 @@ Tokens are configured in the seed config and map to users. Pass them as `Authori
 
 **Google**: Standard OAuth 2.0 authorization code flow. Configure clients in the seed config.
 
-**Discord**: Bot REST endpoints require `Authorization: Bot <token>`. The default seeded token is `test-token`.
+**Discord**: Bot REST endpoints require `Authorization: Bot <token>`. The default seeded token is `test-token`. OAuth authorization code flows use the seeded Discord application and return Bearer tokens for user-scoped REST calls.
 
 **Slack**: All Web API endpoints require `Authorization: Bearer <token>`. OAuth v2 flow with user picker UI.
 
