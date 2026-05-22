@@ -36,6 +36,7 @@ type ApplicationSeed struct {
 	Name         string   `json:"name"`
 	RedirectURIs []string `json:"redirect_uris"`
 	PublicKey    string   `json:"public_key"`
+	PrivateKey   string   `json:"private_key"`
 }
 
 type GuildSeed struct {
@@ -100,6 +101,7 @@ func (s *Service) RegisterRoutes(router *corehttp.Router) {
 		s.registerAPIRoutes(router, prefix)
 	}
 	s.registerOAuthRoutes(router)
+	s.registerInteractionSimulationRoutes(router)
 	router.Get("/discord", s.handleInspector)
 	if s.rootInspector {
 		router.Get("/", s.handleInspector)
@@ -192,7 +194,8 @@ func (s *Service) SeedDefaults() {
 			"http://localhost:3000/api/auth/callback/discord",
 			"http://localhost:3000/callback",
 		},
-		"public_key": "",
+		"public_key":  defaultDiscordInteractionPublicKey(),
+		"private_key": defaultDiscordInteractionPrivateKeySeedHex,
 	})
 	s.store.Guilds.Insert(corestore.Record{
 		"guild_id": guildID,
@@ -318,6 +321,14 @@ func (s *Service) SeedFromConfig(config SeedConfig) {
 		if redirectURIs == nil {
 			redirectURIs = []string{}
 		}
+		privateKey := strings.TrimSpace(config.Application.PrivateKey)
+		publicKey := strings.TrimSpace(config.Application.PublicKey)
+		if privateKey == "" && publicKey == "" {
+			privateKey = defaultDiscordInteractionPrivateKeySeedHex
+			publicKey = defaultDiscordInteractionPublicKey()
+		} else if privateKey != "" && publicKey == "" {
+			publicKey, _ = discordPublicKeyFromPrivateHex(privateKey)
+		}
 		if app := firstRecord(s.store.Applications.FindBy("application_id", applicationID)); app != nil {
 			s.store.Applications.Update(intField(app, "id"), corestore.Record{
 				"name":          name,
@@ -325,7 +336,8 @@ func (s *Service) SeedFromConfig(config SeedConfig) {
 				"client_id":     clientID,
 				"client_secret": clientSecret,
 				"redirect_uris": redirectURIs,
-				"public_key":    config.Application.PublicKey,
+				"public_key":    publicKey,
+				"private_key":   privateKey,
 			})
 		} else {
 			s.store.Applications.Insert(corestore.Record{
@@ -335,7 +347,8 @@ func (s *Service) SeedFromConfig(config SeedConfig) {
 				"name":           name,
 				"bot_id":         botID,
 				"redirect_uris":  redirectURIs,
-				"public_key":     config.Application.PublicKey,
+				"public_key":     publicKey,
+				"private_key":    privateKey,
 			})
 		}
 	}

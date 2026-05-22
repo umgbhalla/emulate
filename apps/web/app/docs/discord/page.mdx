@@ -84,6 +84,21 @@ Seed a custom token under `discord.bot.token`.
 - `GET`, `POST`, `PUT`, `PATCH`, and `DELETE /api/v10/applications/:applicationId/commands` - manage global application commands
 - `GET`, `POST`, `PUT`, `PATCH`, and `DELETE /api/v10/applications/:applicationId/guilds/:guildId/commands` - manage guild application commands
 
+## Interaction Simulation
+
+- `GET /_emulate/discord/application` - returns local app wiring metadata, including the public key
+- `POST /_emulate/discord/interactions` - sends a signed slash command interaction to `target_url`
+
+```bash
+curl -s http://localhost:4003/_emulate/discord/application
+
+curl -s -X POST http://localhost:4003/_emulate/discord/interactions \
+  -H 'Content-Type: application/json' \
+  -d '{"target_url":"http://localhost:3001/api/webhooks/discord","command_name":"ask","content":"hello"}'
+```
+
+Use the returned `public_key` as your app's Discord public key. The simulator signs the JSON payload and creates the matching followup webhook for `/api/v10/webhooks/:applicationId/:interactionToken`.
+
 `/api/v9/*` and `/api/*` aliases are also mounted for common client configurations.
 
 ## Seed Config
@@ -113,4 +128,4 @@ discord:
 
 ## Not Implemented Yet
 
-Gateway WebSocket connections and inbound slash-command interaction simulation are not implemented in the native Discord engine yet.
+Gateway WebSocket connections are not implemented in the native Discord engine yet.

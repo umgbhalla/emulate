@@ -135,6 +135,7 @@ discord:
     client_id: discord-client-id
     client_secret: discord-client-secret
     name: My Discord App
+    private_key: 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
     redirect_uris:
       - http://localhost:3000/api/auth/callback/discord
   guild:

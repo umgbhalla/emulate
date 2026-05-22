@@ -88,6 +88,8 @@ await discord.close()
 - `POST /api/v10/webhooks/:webhookId/:token` - execute webhook
 - `GET`, `POST`, `PUT`, `PATCH`, and `DELETE /api/v10/applications/:applicationId/commands` - global application commands
 - `GET`, `POST`, `PUT`, `PATCH`, and `DELETE /api/v10/applications/:applicationId/guilds/:guildId/commands` - guild application commands
+- `GET /_emulate/discord/application` - local wiring metadata, including application id and public key
+- `POST /_emulate/discord/interactions` - send a signed application command interaction to `target_url`
 
 `/api/v9/*` and `/api/*` aliases are also mounted for common client configurations.
 
@@ -98,6 +100,9 @@ discord:
   application:
     client_id: discord-client-id
     client_secret: discord-client-secret
+    # Optional 32-byte seed or 64-byte Ed25519 private key in hex.
+    # If omitted, emulate supplies a local deterministic key pair.
+    private_key: 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
     redirect_uris:
       - http://localhost:3000/api/auth/callback/discord
   guild:
@@ -118,4 +123,12 @@ discord:
 
 ## Client Notes
 
-Point REST clients at the emulator base URL and use `Bot test-token` or your seeded bot token. OAuth clients can use the seeded `discord-client-id` and `discord-client-secret`. Gateway WebSocket connections and inbound slash-command interaction simulation are not implemented in the native Discord engine yet.
+Point REST clients at the emulator base URL and use `Bot test-token` or your seeded bot token. OAuth clients can use the seeded `discord-client-id` and `discord-client-secret`. Apps that handle Discord interactions should set their public key from `GET /_emulate/discord/application`, then trigger local commands with:
+
+```bash
+curl -s -X POST http://localhost:4003/_emulate/discord/interactions \
+  -H 'Content-Type: application/json' \
+  -d '{"target_url":"http://localhost:3001/api/webhooks/discord","command_name":"ask","content":"hello"}'
+```
+
+The interaction simulator signs the payload and creates the matching followup webhook for `/api/v10/webhooks/:applicationId/:interactionToken`. Gateway WebSocket connections are not implemented in the native Discord engine yet.

@@ -1,10 +1,14 @@
 package discord
 
 import (
+	"crypto/ed25519"
+	"encoding/hex"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -314,6 +318,52 @@ func TestDiscordOAuthAuthorizationCodeFlow(t *testing.T) {
 	handler.ServeHTTP(meRes, meReq)
 	if meRes.Code != http.StatusOK || !strings.Contains(meRes.Body.String(), "developer") {
 		t.Fatalf("unexpected bearer user response: status=%d body=%s", meRes.Code, meRes.Body.String())
+	}
+}
+
+func TestDiscordEmulateSignedInteraction(t *testing.T) {
+	handler := newDiscordTestHandler()
+	var receivedSignature string
+	var receivedTimestamp string
+	var receivedRaw []byte
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedSignature = r.Header.Get("X-Signature-Ed25519")
+		receivedTimestamp = r.Header.Get("X-Signature-Timestamp")
+		receivedRaw, _ = io.ReadAll(r.Body)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"type":5}`))
+	}))
+	defer target.Close()
+
+	body := `{"target_url":` + strconv.Quote(target.URL) + `,"command_name":"ask","content":"hello centaur"}`
+	res, parsed := discordRequest(handler, http.MethodPost, "/_emulate/discord/interactions", body)
+	if res.Code != http.StatusOK || parsed["status"] != float64(http.StatusOK) {
+		t.Fatalf("unexpected simulation response: status=%d body=%s", res.Code, res.Body.String())
+	}
+	publicKey, err := hex.DecodeString(parsed["public_key"].(string))
+	if err != nil {
+		t.Fatal(err)
+	}
+	signature, err := hex.DecodeString(receivedSignature)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ed25519.Verify(publicKey, append([]byte(receivedTimestamp), receivedRaw...), signature) {
+		t.Fatalf("interaction signature did not verify")
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(receivedRaw, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["type"] != float64(2) || payload["application_id"] != "900000000000000001" {
+		t.Fatalf("unexpected interaction payload: %#v", payload)
+	}
+
+	applicationID := parsed["application_id"].(string)
+	token := parsed["token"].(string)
+	followup, followupBody := discordRequest(handler, http.MethodPost, "/api/v10/webhooks/"+applicationID+"/"+token+"?wait=true", `{"content":"done from app"}`)
+	if followup.Code != http.StatusOK || followupBody["content"] != "done from app" {
+		t.Fatalf("unexpected interaction followup response: status=%d body=%s", followup.Code, followup.Body.String())
 	}
 }
 

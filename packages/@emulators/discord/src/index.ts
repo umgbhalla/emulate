@@ -37,6 +37,7 @@ export interface DiscordApplication extends CompatEntity {
   bot_id: string;
   redirect_uris: string[];
   public_key: string;
+  private_key?: string;
 }
 
 export interface DiscordGuild extends CompatEntity {
@@ -148,6 +149,7 @@ export interface DiscordSeedConfig {
     name?: string;
     redirect_uris?: string[];
     public_key?: string;
+    private_key?: string;
   };
   guild?: { id?: string; name?: string };
   bot?: { id?: string; username?: string; token?: string };

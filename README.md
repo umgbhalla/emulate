@@ -244,6 +244,7 @@ discord:
   application:
     client_id: discord-client-id
     client_secret: discord-client-secret
+    private_key: 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
     redirect_uris:
       - http://localhost:3000/api/auth/callback/discord
   guild:
@@ -690,6 +691,22 @@ The native Go runtime implements the Discord REST surface for local CLI runs and
 - `GET`, `POST`, `PUT`, `PATCH`, and `DELETE /api/v10/applications/:applicationId/commands` - manage global application commands
 - `GET`, `POST`, `PUT`, `PATCH`, and `DELETE /api/v10/applications/:applicationId/guilds/:guildId/commands` - manage guild application commands
 
+### Interaction Simulation
+- `GET /_emulate/discord/application` - returns the seeded application id, public key, guild id, channel id, and user id for local wiring
+- `POST /_emulate/discord/interactions` - sends a signed application command interaction to `target_url`
+
+Example:
+
+```bash
+curl -s http://localhost:4000/_emulate/discord/application
+
+curl -s -X POST http://localhost:4000/_emulate/discord/interactions \
+  -H 'Content-Type: application/json' \
+  -d '{"target_url":"http://localhost:3001/api/webhooks/discord","command_name":"ask","content":"hello"}'
+```
+
+The simulation endpoint signs `timestamp + body` with the seeded Discord application private key and sets `X-Signature-Ed25519` plus `X-Signature-Timestamp`. It also creates the matching interaction followup webhook so apps can post to `/api/v10/webhooks/:applicationId/:interactionToken`.
+
 ### Messages
 - `GET /api/v10/channels/:channelId/messages` - list messages
 - `GET /api/v10/channels/:channelId/messages/:messageId` - get message
@@ -705,7 +722,7 @@ The native Go runtime implements the Discord REST surface for local CLI runs and
 - `GET /api/v10/channels/:channelId/messages/:messageId/reactions/:emoji` - list reaction users
 - `DELETE /api/v10/channels/:channelId/messages/:messageId/reactions/:emoji/@me` - remove own reaction
 
-`/api/v9/*` and `/api/*` aliases are mounted for common client configurations. Gateway WebSocket connections and inbound slash-command interaction simulation are not implemented yet.
+`/api/v9/*` and `/api/*` aliases are mounted for common client configurations. Gateway WebSocket connections are not implemented yet.
 
 ## Slack API
 
