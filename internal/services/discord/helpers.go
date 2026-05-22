@@ -54,6 +54,18 @@ func parseDiscordBody(r *http.Request) map[string]any {
 	return body
 }
 
+func parseDiscordBodyArray(r *http.Request) []map[string]any {
+	raw, _ := io.ReadAll(r.Body)
+	if len(strings.TrimSpace(string(raw))) == 0 {
+		return nil
+	}
+	var items []map[string]any
+	if err := json.Unmarshal(raw, &items); err != nil {
+		return nil
+	}
+	return items
+}
+
 func (s *Service) authenticatedUser(c *corehttp.Context) (corestore.Record, bool) {
 	token := discordAuthToken(c.Header("Authorization"))
 	if token == "" {
@@ -175,6 +187,21 @@ func recordSliceValue(value any) []map[string]any {
 			if record, ok := item.(map[string]any); ok {
 				out = append(out, record)
 			}
+		}
+		return out
+	default:
+		return nil
+	}
+}
+
+func stringSliceValue(value any) []string {
+	switch v := value.(type) {
+	case []string:
+		return append([]string(nil), v...)
+	case []any:
+		out := make([]string, 0, len(v))
+		for _, item := range v {
+			out = append(out, stringValue(item))
 		}
 		return out
 	default:

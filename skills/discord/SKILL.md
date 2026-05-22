@@ -5,7 +5,7 @@ description: Emulated Discord REST API for local development and testing. Use wh
 
 # Discord API Emulator
 
-Stateful Discord REST API emulation with bot auth, guilds, channels, members, messages, seed config, and a message inspector.
+Stateful Discord REST API emulation with bot auth, guilds, channels, members, roles, messages, reactions, webhooks, application commands, seed config, and a message inspector.
 
 The native Go runtime implements this Discord REST surface for local CLI runs and Vercel Go Function previews. In native CLI runs with multiple services enabled, open `/discord` for the message inspector. When only Discord is enabled, and in Vercel Go Function previews, the inspector is available at the service root. Use `npx emulate vercel init --service discord` for Vercel preview deployments at `/emulate/discord/*`.
 
@@ -49,16 +49,39 @@ await discord.close()
 
 - `GET /api/v10/users/@me` - current bot user
 - `GET /api/v10/oauth2/applications/@me` - current application
+- `GET /api/v10/gateway` and `GET /api/v10/gateway/bot` - gateway metadata
 - `GET /api/v10/users/@me/guilds` - guild list
 - `GET /api/v10/guilds/:guildId` - guild detail
 - `GET /api/v10/guilds/:guildId/channels` - guild channels
+- `POST /api/v10/guilds/:guildId/channels` - create channel
 - `GET /api/v10/guilds/:guildId/members` - guild members
 - `GET /api/v10/guilds/:guildId/members/:userId` - guild member
+- `PATCH /api/v10/guilds/:guildId/members/:userId` - update member roles
+- `GET /api/v10/guilds/:guildId/roles` - list roles
+- `POST /api/v10/guilds/:guildId/roles` - create role
+- `PUT /api/v10/guilds/:guildId/members/:userId/roles/:roleId` - add member role
+- `DELETE /api/v10/guilds/:guildId/members/:userId/roles/:roleId` - remove member role
 - `GET /api/v10/channels/:channelId` - channel detail
+- `PATCH /api/v10/channels/:channelId` - update channel
+- `DELETE /api/v10/channels/:channelId` - delete channel
 - `GET /api/v10/channels/:channelId/messages` - message history
+- `GET /api/v10/channels/:channelId/messages/:messageId` - get message
 - `POST /api/v10/channels/:channelId/messages` - create message
 - `PATCH /api/v10/channels/:channelId/messages/:messageId` - edit message
 - `DELETE /api/v10/channels/:channelId/messages/:messageId` - delete message
+- `POST /api/v10/channels/:channelId/messages/bulk-delete` - bulk delete messages
+- `POST /api/v10/channels/:channelId/typing` - typing indicator
+- `GET /api/v10/channels/:channelId/pins` - list pins
+- `PUT /api/v10/channels/:channelId/pins/:messageId` - pin message
+- `DELETE /api/v10/channels/:channelId/pins/:messageId` - unpin message
+- `PUT /api/v10/channels/:channelId/messages/:messageId/reactions/:emoji/@me` - add reaction
+- `GET /api/v10/channels/:channelId/messages/:messageId/reactions/:emoji` - list reaction users
+- `DELETE /api/v10/channels/:channelId/messages/:messageId/reactions/:emoji/@me` - remove own reaction
+- `GET /api/v10/channels/:channelId/webhooks` - list channel webhooks
+- `POST /api/v10/channels/:channelId/webhooks` - create channel webhook
+- `POST /api/v10/webhooks/:webhookId/:token` - execute webhook
+- `GET`, `POST`, `PUT`, `PATCH`, and `DELETE /api/v10/applications/:applicationId/commands` - global application commands
+- `GET`, `POST`, `PUT`, `PATCH`, and `DELETE /api/v10/applications/:applicationId/guilds/:guildId/commands` - guild application commands
 
 `/api/v9/*` and `/api/*` aliases are also mounted for common client configurations.
 
@@ -84,4 +107,4 @@ discord:
 
 ## Client Notes
 
-Point REST clients at the emulator base URL and use `Bot test-token` or your seeded bot token. Gateway and slash-command interaction callbacks are not implemented in the native Discord engine yet.
+Point REST clients at the emulator base URL and use `Bot test-token` or your seeded bot token. Gateway WebSocket connections and inbound slash-command interaction simulation are not implemented in the native Discord engine yet.

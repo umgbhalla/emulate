@@ -102,18 +102,69 @@ func (s *Service) RegisterRoutes(router *corehttp.Router) {
 }
 
 func (s *Service) registerAPIRoutes(router *corehttp.Router, prefix string) {
+	router.Get(prefix+"/gateway", s.handleGetGateway)
+	router.Get(prefix+"/gateway/bot", s.handleGetGatewayBot)
 	router.Get(prefix+"/users/@me", s.handleCurrentUser)
 	router.Get(prefix+"/users/@me/guilds", s.handleCurrentUserGuilds)
 	router.Get(prefix+"/oauth2/applications/@me", s.handleCurrentApplication)
 	router.Get(prefix+"/guilds/:guildId", s.handleGetGuild)
 	router.Get(prefix+"/guilds/:guildId/channels", s.handleGuildChannels)
+	router.Post(prefix+"/guilds/:guildId/channels", s.handleCreateGuildChannel)
 	router.Get(prefix+"/guilds/:guildId/members", s.handleGuildMembers)
 	router.Get(prefix+"/guilds/:guildId/members/:userId", s.handleGuildMember)
+	router.Patch(prefix+"/guilds/:guildId/members/:userId", s.handleUpdateGuildMember)
+	router.Get(prefix+"/guilds/:guildId/roles", s.handleListGuildRoles)
+	router.Post(prefix+"/guilds/:guildId/roles", s.handleCreateGuildRole)
+	router.Patch(prefix+"/guilds/:guildId/roles/:roleId", s.handleUpdateGuildRole)
+	router.Delete(prefix+"/guilds/:guildId/roles/:roleId", s.handleDeleteGuildRole)
+	router.Put(prefix+"/guilds/:guildId/members/:userId/roles/:roleId", s.handleAddGuildMemberRole)
+	router.Delete(prefix+"/guilds/:guildId/members/:userId/roles/:roleId", s.handleRemoveGuildMemberRole)
 	router.Get(prefix+"/channels/:channelId", s.handleGetChannel)
+	router.Patch(prefix+"/channels/:channelId", s.handleUpdateChannel)
+	router.Delete(prefix+"/channels/:channelId", s.handleDeleteChannel)
 	router.Get(prefix+"/channels/:channelId/messages", s.handleListMessages)
 	router.Post(prefix+"/channels/:channelId/messages", s.handleCreateMessage)
+	router.Get(prefix+"/channels/:channelId/messages/pins", s.handleListPins)
+	router.Put(prefix+"/channels/:channelId/messages/pins/:messageId", s.handlePinMessage)
+	router.Delete(prefix+"/channels/:channelId/messages/pins/:messageId", s.handleUnpinMessage)
+	router.Get(prefix+"/channels/:channelId/messages/:messageId", s.handleGetMessage)
 	router.Patch(prefix+"/channels/:channelId/messages/:messageId", s.handleUpdateMessage)
 	router.Delete(prefix+"/channels/:channelId/messages/:messageId", s.handleDeleteMessage)
+	router.Post(prefix+"/channels/:channelId/messages/bulk-delete", s.handleBulkDeleteMessages)
+	router.Post(prefix+"/channels/:channelId/typing", s.handleTyping)
+	router.Get(prefix+"/channels/:channelId/pins", s.handleListPins)
+	router.Put(prefix+"/channels/:channelId/pins/:messageId", s.handlePinMessage)
+	router.Delete(prefix+"/channels/:channelId/pins/:messageId", s.handleUnpinMessage)
+	router.Put(prefix+"/channels/:channelId/messages/:messageId/reactions/:emoji/@me", s.handleAddOwnReaction)
+	router.Delete(prefix+"/channels/:channelId/messages/:messageId/reactions/:emoji/@me", s.handleRemoveOwnReaction)
+	router.Get(prefix+"/channels/:channelId/messages/:messageId/reactions/:emoji", s.handleListReactionUsers)
+	router.Delete(prefix+"/channels/:channelId/messages/:messageId/reactions/:emoji/:userId", s.handleRemoveUserReaction)
+	router.Delete(prefix+"/channels/:channelId/messages/:messageId/reactions/:emoji", s.handleClearReaction)
+	router.Delete(prefix+"/channels/:channelId/messages/:messageId/reactions", s.handleClearReactions)
+	router.Get(prefix+"/channels/:channelId/webhooks", s.handleListChannelWebhooks)
+	router.Post(prefix+"/channels/:channelId/webhooks", s.handleCreateChannelWebhook)
+	router.Get(prefix+"/webhooks/:webhookId", s.handleGetWebhook)
+	router.Get(prefix+"/webhooks/:webhookId/:token", s.handleGetWebhook)
+	router.Patch(prefix+"/webhooks/:webhookId", s.handleUpdateWebhook)
+	router.Patch(prefix+"/webhooks/:webhookId/:token", s.handleUpdateWebhook)
+	router.Delete(prefix+"/webhooks/:webhookId", s.handleDeleteWebhook)
+	router.Delete(prefix+"/webhooks/:webhookId/:token", s.handleDeleteWebhook)
+	router.Post(prefix+"/webhooks/:webhookId/:token", s.handleExecuteWebhook)
+	router.Get(prefix+"/webhooks/:webhookId/:token/messages/:messageId", s.handleGetWebhookMessage)
+	router.Patch(prefix+"/webhooks/:webhookId/:token/messages/:messageId", s.handleUpdateWebhookMessage)
+	router.Delete(prefix+"/webhooks/:webhookId/:token/messages/:messageId", s.handleDeleteWebhookMessage)
+	router.Get(prefix+"/applications/:applicationId/commands", s.handleListApplicationCommands)
+	router.Post(prefix+"/applications/:applicationId/commands", s.handleCreateApplicationCommand)
+	router.Put(prefix+"/applications/:applicationId/commands", s.handleBulkOverwriteApplicationCommands)
+	router.Get(prefix+"/applications/:applicationId/commands/:commandId", s.handleGetApplicationCommand)
+	router.Patch(prefix+"/applications/:applicationId/commands/:commandId", s.handleUpdateApplicationCommand)
+	router.Delete(prefix+"/applications/:applicationId/commands/:commandId", s.handleDeleteApplicationCommand)
+	router.Get(prefix+"/applications/:applicationId/guilds/:guildId/commands", s.handleListApplicationCommands)
+	router.Post(prefix+"/applications/:applicationId/guilds/:guildId/commands", s.handleCreateApplicationCommand)
+	router.Put(prefix+"/applications/:applicationId/guilds/:guildId/commands", s.handleBulkOverwriteApplicationCommands)
+	router.Get(prefix+"/applications/:applicationId/guilds/:guildId/commands/:commandId", s.handleGetApplicationCommand)
+	router.Patch(prefix+"/applications/:applicationId/guilds/:guildId/commands/:commandId", s.handleUpdateApplicationCommand)
+	router.Delete(prefix+"/applications/:applicationId/guilds/:guildId/commands/:commandId", s.handleDeleteApplicationCommand)
 }
 
 func (s *Service) SeedDefaults() {
@@ -162,6 +213,22 @@ func (s *Service) SeedDefaults() {
 		Type:      0,
 		Position:  1,
 	}))
+	s.store.Roles.Insert(roleRecord(roleInput{
+		RoleID:      guildID,
+		GuildID:     guildID,
+		Name:        "@everyone",
+		Position:    0,
+		Permissions: "8",
+	}))
+	botRole := s.store.Roles.Insert(roleRecord(roleInput{
+		RoleID:      "400000000000000001",
+		GuildID:     guildID,
+		Name:        "Bot",
+		Position:    1,
+		Permissions: "8",
+		Mentionable: true,
+	}))
+	s.addMemberRole(guildID, botID, stringField(botRole, "role_id"))
 	s.store.Tokens.Insert(corestore.Record{
 		"token":   "test-token",
 		"user_id": botID,
@@ -458,14 +525,15 @@ func (s *Service) handleGuildMembers(c *corehttp.Context) {
 	if _, ok := s.authenticatedUser(c); !ok {
 		return
 	}
-	if s.findGuild(c.Param("guildId")) == nil {
+	guild := s.findGuild(c.Param("guildId"))
+	if guild == nil {
 		discordError(c, http.StatusNotFound, "Unknown Guild", 10004)
 		return
 	}
 	limit := normalizeLimit(c.Query("limit"), 1, 1000)
 	members := []map[string]any{}
 	for _, user := range s.store.Users.All() {
-		members = append(members, formatMember(user))
+		members = append(members, s.formatMemberForGuild(stringField(guild, "guild_id"), user))
 	}
 	if len(members) > limit {
 		members = members[:limit]
@@ -477,7 +545,8 @@ func (s *Service) handleGuildMember(c *corehttp.Context) {
 	if _, ok := s.authenticatedUser(c); !ok {
 		return
 	}
-	if s.findGuild(c.Param("guildId")) == nil {
+	guild := s.findGuild(c.Param("guildId"))
+	if guild == nil {
 		discordError(c, http.StatusNotFound, "Unknown Guild", 10004)
 		return
 	}
@@ -486,7 +555,7 @@ func (s *Service) handleGuildMember(c *corehttp.Context) {
 		discordError(c, http.StatusNotFound, "Unknown Member", 10007)
 		return
 	}
-	c.JSON(http.StatusOK, formatMember(user))
+	c.JSON(http.StatusOK, s.formatMemberForGuild(stringField(guild, "guild_id"), user))
 }
 
 func (s *Service) handleGetChannel(c *corehttp.Context) {
@@ -557,6 +626,7 @@ func (s *Service) handleCreateMessage(c *corehttp.Context) {
 		"mention_roles":    []any{},
 		"attachments":      attachments,
 		"embeds":           embeds,
+		"reactions":        []map[string]any{},
 		"pinned":           false,
 		"type":             0,
 	})
@@ -651,12 +721,20 @@ func formatChannel(channel corestore.Record) map[string]any {
 	}
 }
 
-func formatMember(user corestore.Record) map[string]any {
+func (s *Service) formatMember(user corestore.Record) map[string]any {
+	guildID := ""
+	if guild := firstRecord(s.store.Guilds.All()); guild != nil {
+		guildID = stringField(guild, "guild_id")
+	}
+	return s.formatMemberForGuild(guildID, user)
+}
+
+func (s *Service) formatMemberForGuild(guildID string, user corestore.Record) map[string]any {
 	return map[string]any{
 		"user":                         formatUser(user),
 		"nick":                         nil,
 		"avatar":                       nil,
-		"roles":                        []string{},
+		"roles":                        s.memberRoleIDs(guildID, stringField(user, "user_id")),
 		"joined_at":                    time.Now().UTC().Format(time.RFC3339Nano),
 		"premium_since":                nil,
 		"deaf":                         false,
@@ -668,7 +746,7 @@ func formatMember(user corestore.Record) map[string]any {
 
 func (s *Service) formatMessage(message corestore.Record) map[string]any {
 	author := s.findUser(stringField(message, "author_id"))
-	return map[string]any{
+	out := map[string]any{
 		"id":               stringField(message, "message_id"),
 		"channel_id":       stringField(message, "channel_id"),
 		"guild_id":         stringField(message, "guild_id"),
@@ -685,6 +763,36 @@ func (s *Service) formatMessage(message corestore.Record) map[string]any {
 		"pinned":           boolField(message, "pinned"),
 		"type":             intField(message, "type"),
 	}
+	if webhookID := stringField(message, "webhook_id"); webhookID != "" {
+		out["webhook_id"] = webhookID
+		if webhook := s.findWebhook(webhookID, ""); webhook != nil {
+			out["author"] = map[string]any{
+				"id":            webhookID,
+				"username":      stringField(webhook, "name"),
+				"discriminator": "0000",
+				"global_name":   stringField(webhook, "name"),
+				"avatar":        webhook["avatar"],
+				"bot":           true,
+			}
+		}
+	}
+	if reactions := formatReactions(message); len(reactions) > 0 {
+		out["reactions"] = reactions
+	}
+	return out
+}
+
+func formatReactions(message corestore.Record) []map[string]any {
+	reactions := []map[string]any{}
+	for _, reaction := range recordSliceValue(message["reactions"]) {
+		emoji := stringValue(reaction["name"])
+		reactions = append(reactions, map[string]any{
+			"count": intValue(reaction["count"]),
+			"me":    false,
+			"emoji": map[string]any{"id": nil, "name": emoji},
+		})
+	}
+	return reactions
 }
 
 func normalizeLimit(value string, fallback int, max int) int {

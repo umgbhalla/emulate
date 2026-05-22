@@ -641,7 +641,7 @@ When more than one of Apple, Google, Microsoft, Okta, and Clerk is enabled on on
 
 ## Discord API
 
-Stateful Discord REST API emulation with bot auth, guilds, channels, members, messages, seed config, and a message inspector.
+Stateful Discord REST API emulation with bot auth, guilds, channels, members, roles, messages, reactions, webhooks, application commands, seed config, and a message inspector.
 
 The native Go runtime implements the Discord REST surface for local CLI runs and Vercel Go Function previews. In native CLI runs with multiple services enabled, open `/discord` for the message inspector. When only Discord is enabled, and in Vercel Go Function previews, the inspector is available at the service root. To expose Discord on a Vercel preview without separate infrastructure, run `npx emulate vercel init --service discord`. The generated route serves Discord at `/emulate/discord/*`.
 
@@ -649,21 +649,49 @@ The native Go runtime implements the Discord REST surface for local CLI runs and
 - `Authorization: Bot test-token` - default bot token
 - `GET /api/v10/users/@me` - current bot user
 - `GET /api/v10/oauth2/applications/@me` - current application
+- `GET /api/v10/gateway` and `GET /api/v10/gateway/bot` - gateway metadata for clients that discover the gateway over REST
 
 ### Guilds & Channels
 - `GET /api/v10/users/@me/guilds` - list guilds
 - `GET /api/v10/guilds/:guildId` - get guild
 - `GET /api/v10/guilds/:guildId/channels` - list channels
+- `POST /api/v10/guilds/:guildId/channels` - create channel
 - `GET /api/v10/guilds/:guildId/members` - list members
+- `PATCH /api/v10/guilds/:guildId/members/:userId` - update member roles
 - `GET /api/v10/channels/:channelId` - get channel
+- `PATCH /api/v10/channels/:channelId` - update channel
+- `DELETE /api/v10/channels/:channelId` - delete channel
+
+### Roles, Webhooks, and Commands
+- `GET /api/v10/guilds/:guildId/roles` - list roles
+- `POST /api/v10/guilds/:guildId/roles` - create role
+- `PATCH /api/v10/guilds/:guildId/roles/:roleId` - update role
+- `DELETE /api/v10/guilds/:guildId/roles/:roleId` - delete role
+- `PUT /api/v10/guilds/:guildId/members/:userId/roles/:roleId` - add member role
+- `DELETE /api/v10/guilds/:guildId/members/:userId/roles/:roleId` - remove member role
+- `GET /api/v10/channels/:channelId/webhooks` - list channel webhooks
+- `POST /api/v10/channels/:channelId/webhooks` - create channel webhook
+- `GET`, `PATCH`, and `DELETE /api/v10/webhooks/:webhookId/:token` - manage webhooks
+- `POST /api/v10/webhooks/:webhookId/:token` - execute webhook
+- `GET`, `POST`, `PUT`, `PATCH`, and `DELETE /api/v10/applications/:applicationId/commands` - manage global application commands
+- `GET`, `POST`, `PUT`, `PATCH`, and `DELETE /api/v10/applications/:applicationId/guilds/:guildId/commands` - manage guild application commands
 
 ### Messages
 - `GET /api/v10/channels/:channelId/messages` - list messages
+- `GET /api/v10/channels/:channelId/messages/:messageId` - get message
 - `POST /api/v10/channels/:channelId/messages` - create message
 - `PATCH /api/v10/channels/:channelId/messages/:messageId` - edit message
 - `DELETE /api/v10/channels/:channelId/messages/:messageId` - delete message
+- `POST /api/v10/channels/:channelId/messages/bulk-delete` - bulk delete messages
+- `POST /api/v10/channels/:channelId/typing` - send typing indicator
+- `GET /api/v10/channels/:channelId/pins` - list pinned messages
+- `PUT /api/v10/channels/:channelId/pins/:messageId` - pin message
+- `DELETE /api/v10/channels/:channelId/pins/:messageId` - unpin message
+- `PUT /api/v10/channels/:channelId/messages/:messageId/reactions/:emoji/@me` - add reaction
+- `GET /api/v10/channels/:channelId/messages/:messageId/reactions/:emoji` - list reaction users
+- `DELETE /api/v10/channels/:channelId/messages/:messageId/reactions/:emoji/@me` - remove own reaction
 
-`/api/v9/*` and `/api/*` aliases are mounted for common client configurations. Gateway and slash-command interaction callbacks are not implemented yet.
+`/api/v9/*` and `/api/*` aliases are mounted for common client configurations. Gateway WebSocket connections and inbound slash-command interaction simulation are not implemented yet.
 
 ## Slack API
 

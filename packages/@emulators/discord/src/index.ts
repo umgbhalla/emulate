@@ -68,11 +68,55 @@ export interface DiscordMessage extends CompatEntity {
   channel_id: string;
   guild_id: string;
   author_id: string;
+  webhook_id?: string;
   content: string;
   timestamp: string;
   edited_timestamp: string | null;
   pinned: boolean;
   type: number;
+}
+
+export interface DiscordRole extends CompatEntity {
+  role_id: string;
+  guild_id: string;
+  name: string;
+  color: number;
+  hoist: boolean;
+  position: number;
+  permissions: string;
+  managed: boolean;
+  mentionable: boolean;
+}
+
+export interface DiscordMemberRole extends CompatEntity {
+  guild_id: string;
+  user_id: string;
+  role_id: string;
+}
+
+export interface DiscordWebhook extends CompatEntity {
+  webhook_id: string;
+  token: string;
+  name: string;
+  avatar: string | null;
+  channel_id: string;
+  guild_id: string;
+  application_id: string | null;
+  user_id: string;
+  type: number;
+}
+
+export interface DiscordApplicationCommand extends CompatEntity {
+  command_id: string;
+  application_id: string;
+  guild_id: string;
+  name: string;
+  description: string;
+  type: number;
+  options: unknown[];
+  default_member_permissions: string | null;
+  dm_permission: boolean | null;
+  version: string;
 }
 
 export interface DiscordToken extends CompatEntity {
@@ -96,6 +140,10 @@ export interface DiscordStore {
   users: CompatCollection<DiscordUser>;
   channels: CompatCollection<DiscordChannel>;
   messages: CompatCollection<DiscordMessage>;
+  roles: CompatCollection<DiscordRole>;
+  memberRoles: CompatCollection<DiscordMemberRole>;
+  webhooks: CompatCollection<DiscordWebhook>;
+  applicationCommands: CompatCollection<DiscordApplicationCommand>;
   tokens: CompatCollection<DiscordToken>;
 }
 
@@ -106,6 +154,14 @@ export function getDiscordStore(store: CompatStoreSource): DiscordStore {
     users: compatCollection<DiscordUser>(store, "discord.users", ["user_id", "username", "email"]),
     channels: compatCollection<DiscordChannel>(store, "discord.channels", ["channel_id", "guild_id", "name"]),
     messages: compatCollection<DiscordMessage>(store, "discord.messages", ["message_id", "channel_id"]),
+    roles: compatCollection<DiscordRole>(store, "discord.roles", ["role_id", "guild_id", "name"]),
+    memberRoles: compatCollection<DiscordMemberRole>(store, "discord.member_roles", ["guild_id", "user_id", "role_id"]),
+    webhooks: compatCollection<DiscordWebhook>(store, "discord.webhooks", ["webhook_id", "channel_id", "token"]),
+    applicationCommands: compatCollection<DiscordApplicationCommand>(store, "discord.application_commands", [
+      "command_id",
+      "application_id",
+      "guild_id",
+    ]),
     tokens: compatCollection<DiscordToken>(store, "discord.tokens", ["token"]),
   };
 }
